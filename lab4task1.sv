@@ -19,8 +19,8 @@ module grader
   logic[3:0] znarly01, znarly23, znarlySum;
 
 
-  Adder #(4) addZn01(1'b0, znarly0, znarly1, , znarly01),
-             addZn23(1'b0, znarly2, znarly3, , znarly23),
+  Adder #(4) addZn01(1'b0, {3'b000, znarly0}, {3'b000, znarly1}, , znarly01),
+             addZn23(1'b0, {3'b000, znarly2}, {3'b000, znarly3}, , znarly23),
              addZn(1'b0, znarly01, znarly23, , znarlySum);
   Mux2to1 #(4) ZnarlySel(4'd0, znarlySum, en, Znarly);
 
@@ -211,7 +211,8 @@ module grader_fsm
     case (state)
       WAIT: next_state = GradeIt ? GRADE : WAIT;
       GRADE: next_state = DONE;
-      DONE: next_state = GradeIt ? DONE : WAIT;
+      DONE: next_state = WAIT;
+
     endcase
 
   always_comb begin
