@@ -1,3 +1,4 @@
+`default_nettype none
 module controller (
     input logic clock, reset,
     input logic [1:0] CoinValue,
@@ -35,6 +36,7 @@ module controller (
     logic Cen, Cclr, Crst;
     logic Sen, Sclr, Srst;
 
+    logic grst;
     logic enough, MaxGames;
 
     assign shape = LoadShape;
@@ -63,12 +65,14 @@ module controller (
         Srst <= 1'b0;
         Sen  <= 1'b0;
         Sclr <= 1'b0;
+        grst <= 1'b0;
         if (reset) begin
             current_state <= START;
             Crst          <= 1'b1;
             Gclr          <= 1'b1;
             Rrst          <= 1'b1;
             Srst          <= 1'b1;
+            grst          <= 1'b1;
         end else begin
             case (current_state)
                 START: begin
@@ -238,7 +242,7 @@ module controller (
     );
 
     Grader grad (
-        .CLOCK_100(CLOCK_100),
+        .CLOCK_100(clock),
         .reset(grst),
         .masterPattern(masterPattern),
         .guess(Guess),
