@@ -99,7 +99,7 @@ module controller (
     );
 
     Synchronizer syncLS (
-        .async(LoadShape),
+        .async(LoadShapeNow),
         .clock(clock),
         .sync(sLoadShape)
     );
@@ -158,6 +158,8 @@ module controller (
 
     MagComp #(3) compBought (
         .A(Money),
+        .AltB(),
+        .AeqB(),
         .B(3'd3),
         .AgtB(BoughtGame)
     );
@@ -175,16 +177,16 @@ module controller (
     MagComp #(4) compEnough (
         .A(NumGames),
         .B(4'd0),
-        .AltB(1'b0),
-        .AeqB(1'b0),
+        .AltB(),
+        .AeqB(),
         .AgtB(enough)
     );
 
     MagComp #(4) compMax (
         .A(NumGames),
         .B(4'd7),
-        .AltB(1'b0),
-        .AeqB(1'b0),
+        .AltB(),
+        .AeqB(),
         .AgtB(MaxGames)
     );
 
