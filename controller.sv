@@ -24,17 +24,17 @@ module controller (
     logic [1:0] sLoc;
     logic GameOver;
 
-    logic sStartGame;
+    logic sStartGame, sLoadShape, sGradeIt, sCoinIn;
     logic Won;
     logic BoughtGame;
     logic sLoadShapeNow;
 
 
 
-    logic Gen, Gclr, Grst, Gup;
-    logic Ren, Rclr, Rrst;
-    logic Cen, Cclr, Crst;
-    logic Sen, Sclr, Srst;
+    logic Gen, Gclr, Gup;
+    logic Ren, Rclr;
+    logic Cen, Cclr;
+    logic Sen, Sclr;
 
     logic grst;
     logic enough, MaxGames;
@@ -54,24 +54,20 @@ module controller (
 
     always_ff @(posedge clock, posedge reset) begin
         Gen  <= 1'b0;
-        Grst <= 1'b0;
         Gclr <= 1'b0;
-        Rrst <= 1'b0;
         Ren  <= 1'b0;
         Rclr <= 1'b0;
-        Crst <= 1'b0;
         Cen  <= 1'b0;
         Cclr <= 1'b0;
-        Srst <= 1'b0;
         Sen  <= 1'b0;
         Sclr <= 1'b0;
         grst <= 1'b0;
         if (reset) begin
             current_state <= START;
-            Crst          <= 1'b1;
+            Cclr          <= 1'b1;
             Gclr          <= 1'b1;
-            Rrst          <= 1'b1;
-            Srst          <= 1'b1;
+            Rclr          <= 1'b1;
+            Sclr          <= 1'b1;
             grst          <= 1'b1;
         end else begin
             case (current_state)
@@ -87,7 +83,7 @@ module controller (
                 PLAY: begin
                     if (GameOver | Won) begin
                         Rclr <= 1'b1;
-                        Grst <= 1'b1;
+                        Gclr <= 1'b1;
                     end else if (sLoadShapeNow) begin
                         Sen  <= 1'b1;
                     end
@@ -131,14 +127,14 @@ module controller (
 
     Adder #(3) add (
         .A(adderA),
-        .B(money),
+        .B(Money),
         .cin(1'b0),
         .cout(1'b0),
         .sum(adderOut)
     );
 
     Subtracter #(3) sub (
-        .A(money),
+        .A(Money),
         .B(3'd4),
         .bin(1'b0),
         .bout(1'b0),
@@ -155,14 +151,13 @@ module controller (
     Register #(3) regMoney (
         .en(Cen),
         .clear(Cclr),
-        .reset(Crst),
         .clock(clock),
         .D(moneyIn),
         .Q(Money)
     );
 
     MagComp #(3) compBought (
-        .A(money),
+        .A(Money),
         .B(3'd3),
         .AgtB(BoughtGame)
     );
@@ -180,12 +175,16 @@ module controller (
     MagComp #(4) compEnough (
         .A(NumGames),
         .B(4'd0),
+        .AltB(1'b0),
+        .AeqB(1'b0),
         .AgtB(enough)
     );
 
     MagComp #(4) compMax (
         .A(NumGames),
         .B(4'd7),
+        .AltB(1'b0),
+        .AeqB(1'b0),
         .AgtB(MaxGames)
     );
 
@@ -194,6 +193,7 @@ module controller (
         .clear(Rclr),
         .up(1'b1),
         .clock(clock),
+        .load(1'b0),
         .D(4'd0),
         .Q(RoundNumber)
     );
@@ -205,28 +205,28 @@ module controller (
     );
 
     Mux2to1 #(3) muxPat3 (
-        .I1(Shape),
+        .I1(shape),
         .I0(masterPattern[11:9]),
         .S((sLoc[1]&sLoc[0])),
         .Y(masterPatternIn[11:9])
     );
 
     Mux2to1 #(3) muxPat2 (
-        .I1(Shape),
+        .I1(shape),
         .I0(masterPattern[8:6]),
         .S((sLoc[1]&~sLoc[0])),
         .Y(masterPatternIn[8:6])
     );
 
     Mux2to1 #(3) muxPat1 (
-        .I1(Shape),
+        .I1(shape),
         .I0(masterPattern[5:3]),
         .S((~sLoc[1]&sLoc[0])),
         .Y(masterPatternIn[5:3])
     );
 
     Mux2to1 #(3) muxPat0 (
-        .I1(Shape),
+        .I1(shape),
         .I0(masterPattern[2:0]),
         .S((~sLoc[1]&~sLoc[0])),
         .Y(masterPatternIn[2:0])
@@ -235,7 +235,6 @@ module controller (
     Register #(12) regPat (
         .en(Sen),
         .clear(Sclr),
-        .reset(Srst),
         .clock(clock),
         .D(masterPatternIn),
         .Q(masterPattern)
