@@ -15,8 +15,7 @@ module controller (
     output logic [3:0] Znarly,
     output logic loadZnarlyZood, loadGuess,
     output logic [2:0] Money,
-    output logic [11:0] masterPattern
-    );
+    output logic [11:0] masterPattern, output logic BoughtGame);
 
     logic [11:0] masterPatternIn;
     logic [2:0] adderA, shape, adderOut, subOut;
@@ -25,8 +24,8 @@ module controller (
     logic GameOver;
 
     logic sStartGame, sLoadShape, sGradeIt, sCoinIn;
-    logic Won;
-    logic BoughtGame;
+    //logic Won;
+    //logic BoughtGame;
     logic sLoadShapeNow;
 
 
@@ -42,13 +41,15 @@ module controller (
     assign shape = LoadShape;
     assign sLoc = ShapeLocation;
 
+    enum logic [1:0] {START, LOAD, PLAY} current_state, next_state;
 
-    enum logic {START, PLAY} current_state, next_state;
-
+    logic pos3en, pos2en, pos1en, pos0en, loaded3, loaded2, loaded1, loaded0,
+          pos3clr, pos2clr, pos1clr, pos0clr;
     always_comb begin
         case (current_state)
-            START: next_state = (enough & sStartGame)? PLAY : START;
-            PLAY:  next_state = (GameOver | Won)? START : PLAY;
+            START: next_state = (enough)? LOAD : START;
+            LOAD: next_state = (sStartGame) ? PLAY : LOAD;
+            PLAY:  next_state = (GameOver | GameWon)? START : PLAY;
         endcase
     end
 
@@ -62,6 +63,10 @@ module controller (
         Sen  <= 1'b0;
         Sclr <= 1'b0;
         grst <= 1'b0;
+        pos3clr <= 1'b0;
+        pos2clr <= 1'b0;
+        pos1clr <= 1'b0;
+        pos0clr <= 1'b0;
         if (reset) begin
             current_state <= START;
             Cclr          <= 1'b1;
@@ -69,23 +74,55 @@ module controller (
             Rclr          <= 1'b1;
             Sclr          <= 1'b1;
             grst          <= 1'b1;
+            pos3clr <= 1'b1;
+            pos2clr <= 1'b1;
+            pos1clr <= 1'b1;
+            pos0clr <= 1'b1;
         end else begin
+            current_state <= next_state;
+
             case (current_state)
                 START: begin
-                    if (enough & sStartGame) begin
-                        Gup <= 1'b0;
+                    if (BoughtGame & ~MaxGames) begin
+                        Gup <= 1'b1;
                         Gen <= 1'b1;
-                    end else if (BoughtGame & ~MaxGames) begin
+                    end
+                    if (sCoinIn)
+                        Cen <= 1'b1;
+                end
+                LOAD: begin
+                    if (BoughtGame & ~MaxGames) begin
                         Gen <= 1'b1;
                         Gup <= 1'b1;
                     end
+                    if (sLoadShapeNow & sLoc[0] & sLoc[1] & ~loaded3) begin
+                        pos3en <= 1;
+                        Sen <= 1'b1;
+                    end
+                    if (sLoadShapeNow & ~sLoc[0] & sLoc[1] & ~loaded2) begin
+                        pos2en <= 1;
+                        Sen <= 1'b1;
+                    end
+                    if (sLoadShapeNow & sLoc[0] & ~sLoc[1] & ~loaded1) begin
+                        pos1en <= 1;
+                        Sen <= 1'b1;
+                    end
+                    if (sLoadShapeNow & ~sLoc[0] & ~sLoc[1] & ~loaded0) begin
+                        pos0en <= 1;
+                        Sen <= 1'b1;
+                    end
+
+                    if (sCoinIn)
+                        Cen <= 1'b1;
+                    if (sStartGame) begin
+                        Gen <= 1'b1;
+                        Gup <= 1'b0;
+                    end
                 end
                 PLAY: begin
-                    if (GameOver | Won) begin
+                    if (GameOver | GameWon) begin
                         Rclr <= 1'b1;
                         Gclr <= 1'b1;
-                    end else if (sLoadShapeNow) begin
-                        Sen  <= 1'b1;
                     end
                 end
             endcase
@@ -101,7 +138,7 @@ module controller (
     Synchronizer syncLS (
         .async(LoadShapeNow),
         .clock(clock),
-        .sync(sLoadShape)
+        .sync(sLoadShapeNow)
     );
 
     Synchronizer syncGI (
@@ -128,7 +165,7 @@ module controller (
     Adder #(3) add (
         .A(adderA),
         .B(Money),
-        .cin(),
+        .cin(1'b0),
         .cout(),
         .sum(adderOut)
     );
@@ -136,7 +173,7 @@ module controller (
     Subtracter #(3) sub (
         .A(Money),
         .B(3'd4),
-        .bin(),
+        .bin(1'b0),
         .bout(),
         .diff(subOut)
     );
@@ -174,6 +211,11 @@ module controller (
         .Q(NumGames)
     );
 
+    Counter #(1) p3count(pos3en, pos3clr, 1'b0, 1'b1, clock, 1'b0, loaded3),
+                 p2count(pos2en, pos2clr, 1'b0, 1'b1, clock, 1'b0, loaded2),
+                 p1count(pos1en, pos1clr, 1'b0, 1'b1, clock, 1'b0, loaded1),
+                 p0count(pos0en, pos0clr, 1'b0, 1'b1, clock, 1'b0, loaded0);
+
     MagComp #(4) compEnough (
         .A(NumGames),
         .B(4'd0),
@@ -201,7 +243,7 @@ module controller (
     );
 
     Comparator #(4) compOver (
-        .A(4'd0),
+        .A(4'd7),
         .B(RoundNumber),
         .AeqB(GameOver)
     );
@@ -255,8 +297,8 @@ module controller (
 
     Comparator #(4) compWon (
         .A(Znarly),
-        .B(4'b1111),
-        .AeqB(Won)
+        .B(4'd4),
+        .AeqB(GameWon)
     );
 
 
