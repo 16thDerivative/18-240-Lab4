@@ -128,16 +128,16 @@ module controller (
     Adder #(3) add (
         .A(adderA),
         .B(Money),
-        .cin(1'b0),
-        .cout(1'b0),
+        .cin(),
+        .cout(),
         .sum(adderOut)
     );
 
     Subtracter #(3) sub (
         .A(Money),
         .B(3'd4),
-        .bin(1'b0),
-        .bout(1'b0),
+        .bin(),
+        .bout(),
         .diff(subOut)
     );
 
