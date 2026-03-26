@@ -240,7 +240,7 @@ module controller (
         .Q(masterPattern)
     );
 
-    Grader grad (
+    grader grad (
         .CLOCK_100(clock),
         .reset(grst),
         .masterPattern(masterPattern),
